@@ -93,11 +93,20 @@ class _PersonScreenState extends State<PersonScreen> {
             onPressed: () {
                 showModalBottomSheet(context: context, builder: (_) {
                   return PersonForm(onSubmit: (item) async {
-                    final _responseData = await _personFuture;
-                    final _users = [ item, ... _responseData.users ];
-                    setState(() {
-                      _personFuture = Future.value(PersonPageable(users: _users, total: _users.length, limit: 0, skip: 0));
-                    });
+                    try {
+                      final _responseData = await _personFuture;
+                      final p = await _personService.store(item);
+                      final _users = [ p, ... _responseData.users];
+                      setState(() {
+                        _personFuture = Future.value(PersonPageable(
+                            users: _users, total: _users.length, limit: 0, skip: 0)
+                        );
+                      });
+                    }catch(error){
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível criar o usuário'),));
+                    }finally{
+                      Navigator.pop(context);
+                    }
                   });
                 });
             },

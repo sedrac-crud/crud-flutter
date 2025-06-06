@@ -1,14 +1,28 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:crud_flutter/blocks/auth_person_cubit.dart';
-import 'package:crud_flutter/models/_import.dart';
+import 'package:crud_flutter/services/auth_person_service.dart';
+import 'package:crud_flutter/util/app_colors.dart';
+import 'package:crud_flutter/widgets/auth_person_form.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/material.dart';
 
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key,});
+class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
 
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  late AuthPersonService _authPersonService;
+
+  @override
+  void initState() {
+    _authPersonService = AuthPersonService();
+    super.initState();
+  }
 
   void _showExitConfirmationDialog(BuildContext context) {
     showDialog(
@@ -39,18 +53,39 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    AuthPerson person = context.watch<AuthPersonCubit>().state;
+    final authPersonCubit = context.watch<AuthPersonCubit>();
+    final person = context.watch<AuthPersonCubit>().state;
     return Scaffold(
       appBar: AppBar(
-        title: Text("Perfil", style: GoogleFonts.lexend(fontSize: 20),),
+        title: Text("Perfil", style: GoogleFonts.lexend(fontSize: 20)),
         centerTitle: true,
         actions: [
           IconButton(
             onPressed: () {
+              showModalBottomSheet(context: context, builder: (_) {
+                return AuthPersonForm(initialAuthPerson: person, onSubmit: (item){
+                  try{
+                    _authPersonService.update(item).then((it) {
+                      authPersonCubit.setPerson(it);
+                    }).catchError((e) {
+                      print(e);
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível editar o usuário'),));
+                    });
+                  }finally {
+                    Navigator.pop(context);
+                  }
+                },);
+              });
+            },
+            icon: Icon(Icons.edit, color: AppColors.colorIconInput),
+          ),
+
+          IconButton(
+            onPressed: () {
               _showExitConfirmationDialog(context);
             },
-            icon: const Icon(Icons.logout, color: Colors.red,)
-          )
+            icon: const Icon(Icons.logout, color: Colors.red),
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -58,7 +93,8 @@ class ProfileScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Hero(tag: 'person_image_${person.id}',
+            Hero(
+              tag: 'person_image_${person.id}',
               child: CircleAvatar(
                 radius: 60,
                 backgroundColor: Colors.grey[200],
@@ -69,9 +105,12 @@ class ProfileScreen extends StatelessWidget {
                     height: 120,
                     fit: BoxFit.cover,
                     placeholder: (context, url) =>
-                    const CircularProgressIndicator(),
-                    errorWidget: (context, url, error) =>
-                    const Icon(Icons.broken_image, size: 60, color: Colors.grey),
+                        const CircularProgressIndicator(),
+                    errorWidget: (context, url, error) => const Icon(
+                      Icons.broken_image,
+                      size: 60,
+                      color: Colors.grey,
+                    ),
                   ),
                 ),
               ),
@@ -96,8 +135,13 @@ class ProfileScreen extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
-            Text(person.username,
-              style: GoogleFonts.lato(fontSize: 10, fontWeight: FontWeight.w400, color: Theme.of(context).primaryColor,),
+            Text(
+              person.username,
+              style: GoogleFonts.lato(
+                fontSize: 10,
+                fontWeight: FontWeight.w400,
+                color: Theme.of(context).primaryColor,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 30),
@@ -110,7 +154,9 @@ class ProfileScreen extends StatelessWidget {
             _buildInfoCard(
               icon: Icons.person_outline,
               label: 'Gênero',
-              value: person.gender == 'male' ? 'Masculino' : (person.gender == 'female' ? 'Feminino' : 'Outro'),
+              value: person.gender == 'male'
+                  ? 'Masculino'
+                  : (person.gender == 'female' ? 'Feminino' : 'Outro'),
             ),
             const SizedBox(height: 10),
           ],

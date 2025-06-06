@@ -59,10 +59,9 @@ class PersonService {
       }),
     );
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       return Person.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
     } else {
-      // DummyJSON API retorna 200 OK para POST e PUT, mas se for diferente, pode ser erro.
       throw Exception("Não foi possível a realização desta operação de criação: ${response.statusCode} - ${response.body}");
     }
   }
@@ -81,7 +80,6 @@ class PersonService {
         'username': person.username,
         'gender': person.gender,
         'image': person.image,
-        // Inclua outros campos necessários pela API ao atualizar
       }),
     );
 
